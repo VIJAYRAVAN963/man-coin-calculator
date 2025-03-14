@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency to MAN Coin Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a365d, #2a5c8f);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .converter-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            transition: transform 0.3s ease;
+        }
+
+        .converter-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header img {
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .header h1 {
+            color: #2a5c8f;
+            font-size: 1.8rem;
+        }
+
+        .conversion-section {
+            margin: 1.5rem 0;
+        }
+
+        .currency-group {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .currency-label {
+            color: #444;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .currency-input {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .currency-input:focus {
+            outline: none;
+            border-color: #2a5c8f;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .result-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .man-amount {
+            color: #2a5c8f;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .exchange-rate {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .disclaimer {
+            color: #888;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 1.5rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="converter-container">
+        <div class="header">
+            <img src="https://ico.movieaccessnetwork.com/public/backend/images/web-settings/image-assets/feddef6c-2fda-4e69-ac3a-60ba6588a2ed.webp" alt="MAN Coin Logo">
+            <h1>Currency to MAN Coin Converter</h1>
+        </div>
+
+        <div class="conversion-section">
+            <div class="currency-group">
+                <label class="currency-label">Indian Rupees (₹)</label>
+                <input type="number" id="inrInput" class="currency-input" placeholder="Enter INR amount" step="0.01" min="0">
+            </div>
+            <div class="exchange-rate">Exchange Rate: ₹0.70 = 1 MAN</div>
+            <div class="error-message" id="inrError"></div>
+
+            <div class="currency-group">
+                <label class="currency-label">US Dollars ($)</label>
+                <input type="number" id="usdInput" class="currency-input" placeholder="Enter USD amount" step="0.01" min="0">
+            </div>
+            <div class="exchange-rate">Exchange Rate: $0.0082 = 1 MAN</div>
+            <div class="error-message" id="usdError"></div>
+
+            <div class="currency-group">
+                <label class="currency-label">Swiss Francs (₣)</label>
+                <input type="number" id="chfInput" class="currency-input" placeholder="Enter CHF amount" step="0.01" min="0">
+            </div>
+            <div class="exchange-rate">Exchange Rate: ₣0.0071 = 1 MAN</div>
+            <div class="error-message" id="chfError"></div>
+        </div>
+
+        <div class="result-section">
+            <div class="result-label">Total MAN Coins</div>
+            <div class="man-amount" id="manResult">0.00 MAN</div>
+        </div>
+
+        <div class="disclaimer">
+            * Conversion rates are based on current market values. Actual exchange rates may vary.
+        </div>
+    </div>
+
+    <script>
+        const exchangeRates = {
+            INR: 0.70,
+            USD: 0.0082,
+            CHF: 0.0071
+        };
+
+        const inputs = {
+            INR: document.getElementById('inrInput'),
+            USD: document.getElementById('usdInput'),
+            CHF: document.getElementById('chfInput')
+        };
+
+        const errors = {
+            INR: document.getElementById('inrError'),
+            USD: document.getElementById('usdError'),
+            CHF: document.getElementById('chfError')
+        };
+
+        const resultElement = document.getElementById('manResult');
+
+        // Add event listeners to all input fields
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', () => {
+                // Clear other input fields when one is being used
+                Object.keys(inputs).forEach(currency => {
+                    if(inputs[currency] !== input) {
+                        inputs[currency].value = '';
+                    }
+                });
+                calculateMAN();
+            });
+        });
+
+        function calculateMAN() {
+            let totalMAN = 0;
+            let activeCurrency = null;
+
+            // Clear all errors
+            Object.values(errors).forEach(error => {
+                error.style.display = 'none';
+            });
+
+            // Calculate based on active currency input
+            Object.keys(inputs).forEach(currency => {
+                const input = inputs[currency];
+                if(input.value.trim() !== '') {
+                    const value = parseFloat(input.value);
+                    
+                    if(value < 0) {
+                        errors[currency].textContent = 'Amount cannot be negative';
+                        errors[currency].style.display = 'block';
+                        return;
+                    }
+                    
+                    if(isNaN(value)) {
+                        errors[currency].textContent = 'Please enter a valid number';
+                        errors[currency].style.display = 'block';
+                        return;
+                    }
+
+                    totalMAN = value / exchangeRates[currency];
+                    activeCurrency = currency;
+                }
+            });
+
+            if(activeCurrency) {
+                resultElement.textContent = `${totalMAN.toFixed(2)} MAN`;
+            } else {
+                resultElement.textContent = '0.00 MAN';
+            }
+        }
+    </script>
+</body>
+</html>
